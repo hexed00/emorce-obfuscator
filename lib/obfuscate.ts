@@ -1,5 +1,5 @@
 /**
- * EmorceHub protection — pure Lua XOR loaders (no bit32).
+ * EmorceHub protection — pure Lua XOR loaders safe for Luau/executors.
  */
 
 function xorEncode(input: string, key: string): number[] {
@@ -18,13 +18,18 @@ function toLuaNumberTable(nums: number[]): string {
   return "{" + parts.join(",") + "}";
 }
 
+/** Pure Lua XOR with integer division (Luau-safe) */
 const PURE_BXOR = `local function bxor(a,b)
 local r,p=0,1
-a,b=a%256,b%256
+a=a%256
+b=b%256
 while a>0 or b>0 do
-local aa,bb=a%2,b%2
+local aa=a%2
+local bb=b%2
 if aa~=bb then r=r+p end
-a,b,p=(a-aa)/2,(b-bb)/2,p*2
+a=math.floor(a/2)
+b=math.floor(b/2)
+p=p*2
 end
 return r
 end`;
@@ -45,11 +50,14 @@ local a=${table}
 local b="${keyLua}"
 local c={}
 for d=1,#a do
-c[d]=string.char(bxor(a[d],b:byte((d-1)%#b+1)))
+c[d]=string.char(bxor(a[d],b:byte(((d-1)%#b)+1)))
 end
 local e=table.concat(c)
 local f=loadstring or load
-return f(e)()
+if not f then error("EmorceHub: no loadstring") end
+local g,h=f(e)
+if not g then error("EmorceHub: decode fail: "..tostring(h)) end
+g()
 `;
 }
 
@@ -72,7 +80,7 @@ local K2="${k2}"
 local function X(t,k)
 local o={}
 for i=1,#t do
-o[i]=string.char(bxor(t[i],k:byte((i-1)%#k+1)))
+o[i]=string.char(bxor(t[i],k:byte(((i-1)%#k)+1)))
 end
 return table.concat(o)
 end
@@ -81,6 +89,9 @@ local T={}
 for i=1,#S do T[i]=S:byte(i) end
 local U=X(T,K1)
 local L=loadstring or load
-return L(U)()
+if not L then error("EmorceHub: no loadstring") end
+local fn,err=L(U)
+if not fn then error("EmorceHub: decode fail: "..tostring(err)) end
+fn()
 `;
 }
