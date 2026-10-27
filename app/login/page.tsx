@@ -24,6 +24,7 @@ export default function LoginPage() {
       setResultKey(data.apiKey);
       localStorage.setItem("emorce_api_key", data.apiKey);
       localStorage.setItem("emorce_user", JSON.stringify({ id: data.id, name: data.name }));
+      sessionStorage.setItem("emorce_session", "1");
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -44,6 +45,7 @@ export default function LoginPage() {
       if (!res.ok) throw new Error(data.error || "failed");
       localStorage.setItem("emorce_api_key", apiKey);
       localStorage.setItem("emorce_user", JSON.stringify({ id: data.id, name: data.name }));
+      sessionStorage.setItem("emorce_session", "1");
       window.location.href = "/";
     } catch (e: any) {
       setError(e.message);
