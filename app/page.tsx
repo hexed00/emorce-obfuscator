@@ -12,12 +12,13 @@ export default function Home() {
   const [error, setError] = useState("");
   const [result, setResult] = useState<{
     loadstring: string;
+    offlineLoadstring: string;
     apiUrl: string;
     key: string;
     chars: number;
     strength: string;
   } | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const chars = source.length;
 
@@ -54,10 +55,10 @@ export default function Home() {
     }
   }
 
-  function copy(text: string) {
+  function copy(text: string, which: string) {
     navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setCopied(which);
+    setTimeout(() => setCopied(null), 2000);
   }
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -125,7 +126,7 @@ export default function Home() {
                 <input type={showPw ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Set a secure password (5-20 characters)..." maxLength={20} className="w-full px-4 py-2.5 pr-16 rounded-lg border border-[#1a1a24] bg-[#050508] text-sm focus:outline-none focus:border-[#c41e3a]/50" />
                 <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#6b6b80]">{showPw ? "hide" : "show"}</button>
               </div>
-              <p className="mt-1 text-[11px] text-[#6b6b80]">Password gates the manage page only. Loadstring always runs for everyone.</p>
+              <p className="mt-1 text-[11px] text-[#6b6b80]">Password only for manage page. Execution does not need it.</p>
             </div>
 
             <div>
@@ -140,28 +141,45 @@ export default function Home() {
         </div>
 
         {result && (
-          <div className="rounded-xl border border-[#c41e3a]/40 bg-[#0c0c12] overflow-hidden">
-            <div className="px-5 py-3 border-b border-[#1a1a24] bg-[#c41e3a]/10 text-sm text-[#c41e3a] font-medium">Protected ({result.strength}) — loadstring ready</div>
-            <div className="p-5 space-y-3">
-              <div className="text-[10px] text-[#6b6b80] uppercase tracking-widest font-mono">// LOADSTRING</div>
-              <div className="flex gap-2">
-                <input readOnly value={result.loadstring} className="flex-1 px-3 py-2 rounded-lg border border-[#1a1a24] bg-[#050508] text-xs font-mono text-[#00e5ff]" />
-                <button type="button" onClick={() => copy(result.loadstring)} className="px-3 py-2 rounded-lg border border-[#1a1a24] text-xs text-[#9a9ab0] hover:text-white">{copied ? "copied" : "copy"}</button>
+          <div className="rounded-xl border border-[#c41e3a]/40 bg-[#0c0c12] overflow-hidden space-y-0">
+            <div className="px-5 py-3 border-b border-[#1a1a24] bg-[#c41e3a]/10 text-sm text-[#c41e3a] font-medium">
+              Protected ({result.strength}) — use OFFLINE loadstring in Roblox
+            </div>
+            <div className="p-5 space-y-5">
+              <div>
+                <div className="text-[10px] text-green-400 uppercase tracking-widest font-mono mb-2">// OFFLINE LOADSTRING (always works — no server)</div>
+                <p className="text-[11px] text-[#9a9ab0] mb-2">Paste this in your executor. Payload is embedded. Never hits the site. Never dies on cold start.</p>
+                <div className="flex gap-2">
+                  <textarea readOnly value={result.offlineLoadstring} rows={4} className="flex-1 px-3 py-2 rounded-lg border border-green-900/40 bg-[#050508] text-[11px] font-mono text-green-300 focus:outline-none" />
+                  <button type="button" onClick={() => copy(result.offlineLoadstring, "offline")} className="px-3 py-2 h-fit rounded-lg border border-green-900/40 text-xs text-green-400 hover:bg-green-950/30">
+                    {copied === "offline" ? "copied" : "copy"}
+                  </button>
+                </div>
               </div>
-              <a href={`/script/${result.key}`} className="text-sm text-[#c41e3a] hover:underline block">Manage page (password required) → /script/{result.key}</a>
-              <p className="text-[11px] text-[#6b6b80]">Note: scripts live in server memory. If you get &quot;invalid or deleted&quot; after a while, re-protect. Encoded/Hardened hide source on the wire.</p>
+
+              <div>
+                <div className="text-[10px] text-[#6b6b80] uppercase tracking-widest font-mono mb-2">// HOSTED LOADSTRING (needs warm server)</div>
+                <p className="text-[11px] text-[#6b6b80] mb-2">Short link. Can fail after vercel cold start with &quot;invalid or deleted&quot;.</p>
+                <div className="flex gap-2">
+                  <input readOnly value={result.loadstring} className="flex-1 px-3 py-2 rounded-lg border border-[#1a1a24] bg-[#050508] text-xs font-mono text-[#00e5ff]" />
+                  <button type="button" onClick={() => copy(result.loadstring, "hosted")} className="px-3 py-2 rounded-lg border border-[#1a1a24] text-xs text-[#9a9ab0] hover:text-white">
+                    {copied === "hosted" ? "copied" : "copy"}
+                  </button>
+                </div>
+              </div>
+
+              <a href={`/script/${result.key}`} className="text-sm text-[#c41e3a] hover:underline block">
+                Manage page (password) → /script/{result.key}
+              </a>
               <div className="text-[11px] text-[#6b6b80] font-mono">{result.chars} chars · key: {result.key}</div>
             </div>
           </div>
         )}
 
         <div className="rounded-xl border border-[#1a1a24] bg-[#0c0c12] p-5 text-sm text-[#9a9ab0] space-y-2">
-          <div className="font-medium text-white">How it works (obfuscatorhub model)</div>
-          <p>1. Paste Lua + set password + pick protection level.</p>
-          <p>2. Optional custom path for a clean URL.</p>
-          <p>3. Get public loadstring — anyone can run it in an executor.</p>
-          <p>4. /script/KEY requires the password to view/edit/delete source.</p>
-          <p className="text-[#c41e3a]/80">Encoded / Hardened: source is XOR-encoded on the wire, decoded only at runtime via loadstring.</p>
+          <div className="font-medium text-white">Roblox error fix</div>
+          <p className="text-red-300/90">If you saw <code className="text-red-400">EmorceHub: invalid or deleted script</code> — that was the hosted URL after a cold start wiped memory.</p>
+          <p>Use the <span className="text-green-400">OFFLINE loadstring</span> instead. It carries the full encoded script inside itself and never calls the site.</p>
         </div>
       </main>
     </div>
