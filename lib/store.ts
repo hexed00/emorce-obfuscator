@@ -1,13 +1,12 @@
-// In-memory store for demo / single-instance. For production use Vercel KV / Redis / DB.
-
 export type ScriptRecord = {
   id: string;
   customPath: string | null;
   passwordHash: string;
   source: string;
+  loader: string;
+  strength: "light" | "encoded" | "hardened";
   createdAt: number;
   updatedAt: number;
-  owner?: string;
 };
 
 const globalStore = globalThis as unknown as {
@@ -27,4 +26,14 @@ export function getByIdOrPath(key: string): ScriptRecord | undefined {
     if (values[i].customPath === key) return values[i];
   }
   return undefined;
+}
+
+export function saveRecord(record: ScriptRecord) {
+  scripts.set(record.id, record);
+  if (record.customPath) scripts.set(record.customPath, record);
+}
+
+export function deleteRecord(record: ScriptRecord) {
+  scripts.delete(record.id);
+  if (record.customPath) scripts.delete(record.customPath);
 }
