@@ -14,9 +14,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     try {
+      const sessionOk = sessionStorage.getItem("emorce_session") === "1";
       const raw = localStorage.getItem("emorce_user");
-      if (raw) setUser(JSON.parse(raw));
-    } catch {}
+      if (sessionOk && raw) {
+        setUser(JSON.parse(raw));
+      } else {
+        setUser(null);
+      }
+    } catch {
+      setUser(null);
+    }
     setReady(true);
   }, [path]);
 

@@ -8,6 +8,7 @@ import {
   buildHardenedLoader,
 } from "@/lib/obfuscate";
 import { makeToken } from "@/lib/token";
+import { addScriptToAccount } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -75,6 +76,21 @@ export async function POST(req: NextRequest) {
 
     record = await persistToPastefy(record);
     saveRecord(record);
+
+    const apiKeyHeader =
+      req.headers.get("x-emorce-key") ||
+      (typeof body.apiKey === "string" ? body.apiKey : "") ||
+      "";
+    if (apiKeyHeader.startsWith("emorce_")) {
+      await addScriptToAccount(apiKeyHeader, {
+        id: record.id,
+        key: record.pasteId || record.customPath || record.id,
+        strength: record.strength,
+        chars: source.length,
+        createdAt: record.createdAt,
+        customPath: record.customPath,
+      });
+    }
 
     const publicKey = record.pasteId || customPath || id;
     const host = req.headers.get("host") || "emorce-obfuscator.vercel.app";
