@@ -1,37 +1,26 @@
 /**
- * EmorceHub protection — pure Lua XOR loaders safe for Luau/executors.
+ * EmorceHub protection
+ * Encoded/Hardened = Base64 payload + pure Lua decoder (Luau-safe)
  */
 
-function xorEncode(input: string, key: string): number[] {
-  const out: number[] = [];
-  for (let i = 0; i < input.length; i++) {
-    out.push(input.charCodeAt(i) ^ key.charCodeAt(i % key.length));
-  }
-  return out;
+function toBase64(input: string): string {
+  return Buffer.from(input, "utf8").toString("base64");
 }
 
-function toLuaNumberTable(nums: number[]): string {
-  const parts: string[] = [];
-  for (let i = 0; i < nums.length; i += 40) {
-    parts.push(nums.slice(i, i + 40).join(","));
-  }
-  return "{" + parts.join(",") + "}";
-}
-
-/** Pure Lua XOR with integer division (Luau-safe) */
-const PURE_BXOR = `local function bxor(a,b)
-local r,p=0,1
-a=a%256
-b=b%256
-while a>0 or b>0 do
-local aa=a%2
-local bb=b%2
-if aa~=bb then r=r+p end
-a=math.floor(a/2)
-b=math.floor(b/2)
-p=p*2
-end
+const LUA_B64_DECODE = `local B='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+local function dec(data)
+data=string.gsub(data,'[^'..B..'=]','')
+return (data:gsub('.',function(x)
+if x=='=' then return '' end
+local r,f='',(B:find(x)-1)
+for i=6,1,-1 do r=r..(f%2^i-f%2^(i-1)>0 and '1' or '0') end
 return r
+end):gsub('%d%d%d?%d?%d?%d?%d?%d?',function(x)
+if #x~=8 then return '' end
+local c=0
+for i=1,8 do c=c+(x:sub(i,i)=='1' and 2^(8-i) or 0) end
+return string.char(c)
+end))
 end`;
 
 export function lightProtect(source: string, id: string): string {
@@ -39,59 +28,45 @@ export function lightProtect(source: string, id: string): string {
 }
 
 export function buildEncodedLoader(source: string, id: string): string {
-  const key = `emorce_${id}_x7k9`;
-  const encoded = xorEncode(source, key);
-  const table = toLuaNumberTable(encoded);
-  const keyLua = key.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  const payload = toBase64(source);
+  const chunks: string[] = [];
+  for (let i = 0; i < payload.length; i += 80) {
+    chunks.push(payload.slice(i, i + 80));
+  }
+  const table = chunks.map((c) => `"${c}"`).join(",");
 
   return `--[[ EMORCE HUB PROTECTED · ${id} ]]
-${PURE_BXOR}
-local a=${table}
-local b="${keyLua}"
-local c={}
-for d=1,#a do
-c[d]=string.char(bxor(a[d],b:byte(((d-1)%#b)+1)))
-end
-local e=table.concat(c)
-local f=loadstring or load
-if not f then error("EmorceHub: no loadstring") end
-local g,h=f(e)
-if not g then error("EmorceHub: decode fail: "..tostring(h)) end
-g()
+${LUA_B64_DECODE}
+local P={${table}}
+local S=table.concat(P)
+local C=dec(S)
+local L=loadstring or load
+local F,E=L(C)
+if not F then error("EmorceHub: "..tostring(E),0) end
+F()
 `;
 }
 
 export function buildHardenedLoader(source: string, id: string): string {
-  const key1 = `eh_${id}_a`;
-  const key2 = `eh_${id}_b`;
-  const mid = xorEncode(source, key1);
-  let midStr = "";
-  for (const n of mid) midStr += String.fromCharCode(n);
-  const final = xorEncode(midStr, key2);
-  const table = toLuaNumberTable(final);
-  const k1 = key1.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-  const k2 = key2.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  const inner = toBase64(source);
+  const outer = toBase64(inner);
+  const chunks: string[] = [];
+  for (let i = 0; i < outer.length; i += 80) {
+    chunks.push(outer.slice(i, i + 80));
+  }
+  const table = chunks.map((c) => `"${c}"`).join(",");
+  const noise = Array.from({ length: 12 }, () => Math.floor(Math.random() * 200) + 20).join(",");
 
   return `--[[ EMORCE HUB HARDENED · ${id} ]]
-${PURE_BXOR}
-local A=${table}
-local K1="${k1}"
-local K2="${k2}"
-local function X(t,k)
-local o={}
-for i=1,#t do
-o[i]=string.char(bxor(t[i],k:byte(((i-1)%#k)+1)))
-end
-return table.concat(o)
-end
-local S=X(A,K2)
-local T={}
-for i=1,#S do T[i]=S:byte(i) end
-local U=X(T,K1)
+${LUA_B64_DECODE}
+local _N={${noise}}
+local P={${table}}
+local S=table.concat(P)
+local T=dec(S)
+local C=dec(T)
 local L=loadstring or load
-if not L then error("EmorceHub: no loadstring") end
-local fn,err=L(U)
-if not fn then error("EmorceHub: decode fail: "..tostring(err)) end
-fn()
+local F,E=L(C)
+if not F then error("EmorceHub: "..tostring(E),0) end
+F()
 `;
 }
