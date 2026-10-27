@@ -4,38 +4,51 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const NAV = [
-  { section: "MAIN", items: [
-    { href: "/", label: "Obfuscator", icon: "⚡" },
-    { href: "/saved", label: "Saved Scripts", icon: "📁" },
-    { href: "/collab", label: "Collaboration", icon: "👥" },
-    { href: "/shared", label: "Shared With Me", icon: "🔗" },
-  ]},
-  { section: "KEY SYSTEM", items: [
-    { href: "/integrations", label: "Integrations", icon: "🔌" },
-    { href: "/key-status", label: "Key Script Status", icon: "📊" },
-    { href: "/analytics", label: "Analytics", icon: "📈" },
-    { href: "/keys", label: "Key Manager", icon: "🔑" },
-  ]},
-  { section: "ACCOUNT", items: [
-    { href: "/settings", label: "Settings", icon: "⚙️" },
-    { href: "/login", label: "API Key Login", icon: "🔐" },
-  ]},
-  { section: "LEGAL", items: [
-    { href: "/tos", label: "Terms of Service", icon: "📄" },
-    { href: "/privacy", label: "Privacy Policy", icon: "🛡️" },
-  ]},
-  { section: "LINKS", items: [
-    { href: "/about", label: "About", icon: "ℹ️" },
-  ]},
+  {
+    section: "MAIN",
+    items: [
+      { href: "/", label: "Obfuscator", icon: "⚡" },
+      { href: "/saved", label: "Saved Scripts", icon: "📁" },
+      { href: "/collab", label: "Collaboration", icon: "👥" },
+      { href: "/shared", label: "Shared With Me", icon: "🔗" },
+    ],
+  },
+  {
+    section: "KEY SYSTEM",
+    items: [
+      { href: "/integrations", label: "Integrations", icon: "🔌" },
+      { href: "/key-status", label: "Key Script Status", icon: "📊" },
+      { href: "/analytics", label: "Analytics", icon: "📈" },
+      { href: "/keys", label: "Key Manager", icon: "🔑" },
+    ],
+  },
+  {
+    section: "ACCOUNT",
+    items: [
+      { href: "/settings", label: "Settings", icon: "⚙️" },
+      { href: "/login", label: "API Key Login", icon: "🔐" },
+    ],
+  },
+  {
+    section: "LEGAL",
+    items: [
+      { href: "/tos", label: "Terms of Service", icon: "📜" },
+      { href: "/privacy", label: "Privacy Policy", icon: "🛡️" },
+      { href: "/about", label: "Help", icon: "❓" },
+    ],
+  },
 ];
 
 export default function Sidebar({ user }: { user?: { name: string } | null }) {
   const path = usePathname();
   return (
     <aside className="w-60 shrink-0 border-r border-[#1a1a24] bg-[#08080e] min-h-screen flex flex-col">
-      <div className="px-4 py-4 border-b border-[#1a1a24]">
-        <div className="text-[#00e5ff] font-bold tracking-tight">EmorceHub</div>
-        <div className="text-[10px] text-[#6b6b80] tracking-widest">// SCRIPT PROTECTION</div>
+      <div className="px-4 py-4 border-b border-[#1a1a24] flex items-center gap-2">
+        <img src="/pin.svg" alt="" className="w-6 h-6 opacity-90" />
+        <div>
+          <div className="text-[#00e5ff] font-bold tracking-tight leading-tight">EmorceHub</div>
+          <div className="text-[10px] text-[#6b6b80] tracking-widest">// SCRIPT PROTECTION</div>
+        </div>
       </div>
       {user && (
         <div className="px-4 py-3 border-b border-[#1a1a24] flex items-center gap-2">
@@ -71,6 +84,17 @@ export default function Sidebar({ user }: { user?: { name: string } | null }) {
           </div>
         ))}
       </nav>
+      <div className="p-3 border-t border-[#1a1a24]">
+        <a
+          href="https://discord.gg/emorce"
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-[#9a9ab0] hover:text-[#00e5ff] hover:bg-[#0c0c12]"
+        >
+          <img src="/pin.svg" alt="" className="w-4 h-4" />
+          Discord Server
+        </a>
+      </div>
     </aside>
   );
 }
