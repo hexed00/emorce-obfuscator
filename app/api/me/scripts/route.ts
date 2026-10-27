@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   }
   const acc = await findAccountByApiKey(apiKey);
   if (!acc) {
-    return NextResponse.json({ error: "invalid api key" }, { status: 401 });
+    return NextResponse.json({ name: null, scripts: [], cold: true });
   }
   return NextResponse.json({
     name: acc.name,
