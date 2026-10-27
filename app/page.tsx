@@ -17,6 +17,8 @@ export default function Home() {
     key: string;
     chars: number;
     strength: string;
+    id?: string;
+    customPath?: string | null;
   } | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -52,6 +54,23 @@ export default function Home() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed");
       setResult(data);
+      try {
+        const apiKey = localStorage.getItem("emorce_api_key") || "";
+        if (apiKey && data.key) {
+          const listKey = "emorce_scripts_" + apiKey.slice(0, 24);
+          const prev = JSON.parse(localStorage.getItem(listKey) || "[]");
+          const entry = {
+            id: data.id || data.key,
+            key: data.key,
+            strength: data.strength || "encoded",
+            chars: data.chars || 0,
+            createdAt: Date.now(),
+            customPath: data.customPath || null,
+          };
+          const next = [entry, ...prev.filter((x: any) => x.key !== entry.key)].slice(0, 200);
+          localStorage.setItem(listKey, JSON.stringify(next));
+        }
+      } catch {}
     } catch (e: any) {
       setError(e.message || "Something went wrong");
     } finally {
