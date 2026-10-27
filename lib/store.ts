@@ -22,8 +22,9 @@ export const scripts = globalStore.__emorceScripts;
 
 export function getByIdOrPath(key: string): ScriptRecord | undefined {
   if (scripts.has(key)) return scripts.get(key);
-  for (const s of scripts.values()) {
-    if (s.customPath === key) return s;
+  const values = Array.from(scripts.values());
+  for (let i = 0; i < values.length; i++) {
+    if (values[i].customPath === key) return values[i];
   }
   return undefined;
 }
