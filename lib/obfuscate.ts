@@ -1,6 +1,5 @@
 /**
- * EmorceHub protection — encoded loaders for executors.
- * Pure Lua XOR (no bit32/bit dependency) so every executor works.
+ * EmorceHub protection — pure Lua XOR loaders (no bit32).
  */
 
 function xorEncode(input: string, key: string): number[] {
@@ -19,7 +18,6 @@ function toLuaNumberTable(nums: number[]): string {
   return "{" + parts.join(",") + "}";
 }
 
-/** Pure Lua bitwise XOR — works without bit32 / bit library */
 const PURE_BXOR = `local function bxor(a,b)
 local r,p=0,1
 a,b=a%256,b%256
@@ -32,9 +30,7 @@ return r
 end`;
 
 export function lightProtect(source: string, id: string): string {
-  return (
-    `--[[ EMORCE HUB · ${id} ]]\n` + source
-  );
+  return `--[[ EMORCE HUB · ${id} ]]\n` + source;
 }
 
 export function buildEncodedLoader(source: string, id: string): string {

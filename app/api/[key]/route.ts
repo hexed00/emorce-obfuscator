@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getByIdOrPath } from "@/lib/store";
+import { getByIdOrPath, recoverLoader, fetchLoaderByPasteId } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: { key: string } }
 ) {
   const key = params.key;
-  const record = getByIdOrPath(key);
-
   const headers = {
     "Content-Type": "text/plain; charset=utf-8",
     "Cache-Control": "no-store, no-cache, must-revalidate",
@@ -17,19 +15,23 @@ export async function GET(
     "X-Content-Type-Options": "nosniff",
   };
 
-  if (!record) {
+  let record = getByIdOrPath(key);
+  let body: string | null = null;
+
+  if (record) {
+    body = await recoverLoader(record);
+  }
+
+  if (!body && /^[A-Za-z0-9]{6,12}$/.test(key)) {
+    body = await fetchLoaderByPasteId(key);
+  }
+
+  if (!body) {
     return new NextResponse(
-      `-- EmorceHub: script not found (cold start or deleted)\n` +
-        `-- Re-protect the script on the site to regenerate the loadstring.\n` +
-        `error("EmorceHub: invalid or deleted script")`,
+      `-- EmorceHub: script not found\nerror("EmorceHub: invalid or deleted script")`,
       { status: 404, headers }
     );
   }
 
-  const body = record.loader || record.source;
-
-  return new NextResponse(body, {
-    status: 200,
-    headers,
-  });
+  return new NextResponse(body, { status: 200, headers });
 }

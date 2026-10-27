@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { nanoid } from "nanoid";
 import bcrypt from "bcryptjs";
-import { getByIdOrPath, saveRecord } from "@/lib/store";
+import { getByIdOrPath, saveRecord, persistToPastefy } from "@/lib/store";
 import {
   lightProtect,
   buildEncodedLoader,
@@ -59,32 +59,37 @@ export async function POST(req: NextRequest) {
       loader = buildEncodedLoader(source, id);
     }
 
-    const record = {
+    let record = {
       id,
       customPath,
       passwordHash,
       source,
       loader,
       strength,
+      pasteId: null as string | null,
+      metaPasteId: null as string | null,
       createdAt: now,
       updatedAt: now,
     };
+
+    record = await persistToPastefy(record);
     saveRecord(record);
 
-    const key = customPath || id;
+    const publicKey = record.pasteId || customPath || id;
     const host = req.headers.get("host") || "emorce-obfuscator.vercel.app";
     const protocol = host.includes("localhost") ? "http" : "https";
-    const apiUrl = `${protocol}://${host}/api/${key}`;
+    const apiUrl = `${protocol}://${host}/api/${publicKey}`;
     const loadstring = `loadstring(game:HttpGet("${apiUrl}"))()`;
     const offlineLoadstring = `loadstring([==[${loader}]==])()`;
 
     return NextResponse.json({
       id,
       customPath,
-      key,
+      key: publicKey,
       apiUrl,
       loadstring,
       offlineLoadstring,
+      pasteId: record.pasteId,
       chars: source.length,
       strength,
     });
