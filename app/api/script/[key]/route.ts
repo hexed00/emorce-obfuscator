@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { getByIdOrPath, scripts } from "@/lib/store";
+import { getByIdOrPath, saveRecord, deleteRecord } from "@/lib/store";
+import {
+  lightProtect,
+  buildEncodedLoader,
+  buildHardenedLoader,
+} from "@/lib/obfuscate";
 
 export const dynamic = "force-dynamic";
 
@@ -9,11 +14,14 @@ export async function POST(
   { params }: { params: { key: string } }
 ) {
   try {
-    const { password, action, source } = await req.json();
+    const { password, action, source, strength } = await req.json();
     const record = getByIdOrPath(params.key);
 
     if (!record) {
-      return NextResponse.json({ error: "Script not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Script not found (cold start — re-protect on the site)" },
+        { status: 404 }
+      );
     }
 
     const ok = await bcrypt.compare(password || "", record.passwordHash);
@@ -22,16 +30,25 @@ export async function POST(
     }
 
     if (action === "update" && typeof source === "string") {
+      const s =
+        strength === "light" || strength === "hardened" || strength === "encoded"
+          ? strength
+          : record.strength;
+      let loader: string;
+      if (s === "light") loader = lightProtect(source, record.id);
+      else if (s === "hardened") loader = buildHardenedLoader(source, record.id);
+      else loader = buildEncodedLoader(source, record.id);
+
       record.source = source;
+      record.loader = loader;
+      record.strength = s;
       record.updatedAt = Date.now();
-      scripts.set(record.id, record);
-      if (record.customPath) scripts.set(record.customPath, record);
-      return NextResponse.json({ ok: true, chars: source.length });
+      saveRecord(record);
+      return NextResponse.json({ ok: true, chars: source.length, strength: s });
     }
 
     if (action === "delete") {
-      scripts.delete(record.id);
-      if (record.customPath) scripts.delete(record.customPath);
+      deleteRecord(record);
       return NextResponse.json({ ok: true, deleted: true });
     }
 
@@ -40,6 +57,7 @@ export async function POST(
       id: record.id,
       customPath: record.customPath,
       source: record.source,
+      strength: record.strength,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
       chars: record.source.length,

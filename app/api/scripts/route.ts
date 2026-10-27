@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { nanoid } from "nanoid";
 import bcrypt from "bcryptjs";
-import { scripts, getByIdOrPath } from "@/lib/store";
-import { lightProtect } from "@/lib/obfuscate";
+import { getByIdOrPath, saveRecord } from "@/lib/store";
+import {
+  lightProtect,
+  buildEncodedLoader,
+  buildHardenedLoader,
+} from "@/lib/obfuscate";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +16,10 @@ export async function POST(req: NextRequest) {
     const source: string = (body.source || "").trim();
     const password: string = (body.password || "").trim();
     let customPath: string | null = (body.customPath || "").trim() || null;
+    const strength: "light" | "encoded" | "hardened" =
+      body.strength === "light" || body.strength === "hardened"
+        ? body.strength
+        : "encoded";
 
     if (!source) {
       return NextResponse.json({ error: "Script source required" }, { status: 400 });
@@ -42,19 +50,29 @@ export async function POST(req: NextRequest) {
     const passwordHash = await bcrypt.hash(password, 10);
     const now = Date.now();
 
+    let loader: string;
+    if (strength === "light") {
+      loader = lightProtect(source, id);
+    } else if (strength === "hardened") {
+      loader = buildHardenedLoader(source, id);
+    } else {
+      loader = buildEncodedLoader(source, id);
+    }
+
     const record = {
       id,
       customPath,
       passwordHash,
       source,
+      loader,
+      strength,
       createdAt: now,
       updatedAt: now,
     };
-    scripts.set(id, record);
-    if (customPath) scripts.set(customPath, record);
+    saveRecord(record);
 
     const key = customPath || id;
-    const host = req.headers.get("host") || "emorcehub.vercel.app";
+    const host = req.headers.get("host") || "emorce-obfuscator.vercel.app";
     const protocol = host.includes("localhost") ? "http" : "https";
     const apiUrl = `${protocol}://${host}/api/${key}`;
     const loadstring = `loadstring(game:HttpGet("${apiUrl}"))()`;
@@ -66,6 +84,7 @@ export async function POST(req: NextRequest) {
       apiUrl,
       loadstring,
       chars: source.length,
+      strength,
     });
   } catch (e: any) {
     return NextResponse.json({ error: e.message || "Server error" }, { status: 500 });
