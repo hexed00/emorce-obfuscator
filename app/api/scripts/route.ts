@@ -7,6 +7,7 @@ import {
   buildEncodedLoader,
   buildHardenedLoader,
 } from "@/lib/obfuscate";
+import { makeToken } from "@/lib/token";
 
 export const dynamic = "force-dynamic";
 
@@ -78,7 +79,8 @@ export async function POST(req: NextRequest) {
     const publicKey = record.pasteId || customPath || id;
     const host = req.headers.get("host") || "emorce-obfuscator.vercel.app";
     const protocol = host.includes("localhost") ? "http" : "https";
-    const apiUrl = `${protocol}://${host}/api/${publicKey}`;
+    const token = makeToken(publicKey);
+    const apiUrl = `${protocol}://${host}/api/${publicKey}?t=${token}`;
     const loadstring = `loadstring(game:HttpGet("${apiUrl}"))()`;
     const offlineLoadstring = `loadstring([==[${loader}]==])()`;
 
