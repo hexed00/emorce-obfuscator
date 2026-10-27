@@ -1,10 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [mode, setMode] = useState<"login" | "signup">("signup");
   const [name, setName] = useState("");
   const [apiKey, setApiKey] = useState("");
@@ -46,7 +44,7 @@ export default function LoginPage() {
       if (!res.ok) throw new Error(data.error || "failed");
       localStorage.setItem("emorce_api_key", apiKey);
       localStorage.setItem("emorce_user", JSON.stringify({ id: data.id, name: data.name }));
-      router.push("/");
+      window.location.href = "/";
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -96,6 +94,11 @@ export default function LoginPage() {
           </div>
         )}
         {error && <div className="text-sm text-red-400">{error}</div>}
+        <div className="text-center text-[11px] text-[#6b6b80] space-x-3">
+          <a href="/tos" className="hover:text-[#00e5ff]">Terms</a>
+          <a href="/privacy" className="hover:text-[#00e5ff]">Privacy</a>
+          <a href="https://discord.gg/emorce" target="_blank" rel="noreferrer" className="hover:text-[#00e5ff]">Discord</a>
+        </div>
       </div>
     </div>
   );
