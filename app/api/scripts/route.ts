@@ -76,6 +76,7 @@ export async function POST(req: NextRequest) {
     const protocol = host.includes("localhost") ? "http" : "https";
     const apiUrl = `${protocol}://${host}/api/${key}`;
     const loadstring = `loadstring(game:HttpGet("${apiUrl}"))()`;
+    const offlineLoadstring = `loadstring([==[${loader}]==])()`;
 
     return NextResponse.json({
       id,
@@ -83,6 +84,7 @@ export async function POST(req: NextRequest) {
       key,
       apiUrl,
       loadstring,
+      offlineLoadstring,
       chars: source.length,
       strength,
     });
