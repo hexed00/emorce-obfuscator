@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       id: account.id,
       name: account.name,
-      scriptCount: account.scriptIds.length,
+      scriptCount: (account.scripts || []).length,
       webhookUrl: account.webhookUrl || null,
       ipLog: !!account.ipLog,
     });
