@@ -1,6 +1,6 @@
 /**
- * EmorceHub protection — same model as obfuscatorhub:
- * server stores source; public /api/KEY returns runnable Lua.
+ * EmorceHub protection — encoded loaders for executors.
+ * Pure Lua XOR (no bit32/bit dependency) so every executor works.
  */
 
 function xorEncode(input: string, key: string): number[] {
@@ -19,14 +19,21 @@ function toLuaNumberTable(nums: number[]): string {
   return "{" + parts.join(",") + "}";
 }
 
+/** Pure Lua bitwise XOR — works without bit32 / bit library */
+const PURE_BXOR = `local function bxor(a,b)
+local r,p=0,1
+a,b=a%256,b%256
+while a>0 or b>0 do
+local aa,bb=a%2,b%2
+if aa~=bb then r=r+p end
+a,b,p=(a-aa)/2,(b-bb)/2,p*2
+end
+return r
+end`;
+
 export function lightProtect(source: string, id: string): string {
   return (
-    `--[[\n` +
-    `  EMORCE HUB PROTECTED\n` +
-    `  https://emorce-obfuscator.vercel.app\n` +
-    `  id: ${id}\n` +
-    `]]\n` +
-    source
+    `--[[ EMORCE HUB · ${id} ]]\n` + source
   );
 }
 
@@ -36,20 +43,13 @@ export function buildEncodedLoader(source: string, id: string): string {
   const table = toLuaNumberTable(encoded);
   const keyLua = key.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 
-  return `--[[
-  ╔══════════════════════════════════════╗
-  ║          EMORCE HUB PROTECTED        ║
-  ║   https://emorce-obfuscator.vercel.app
-  ║  id: ${id}
-  ╚══════════════════════════════════════╝
-]]
+  return `--[[ EMORCE HUB PROTECTED · ${id} ]]
+${PURE_BXOR}
 local a=${table}
 local b="${keyLua}"
 local c={}
 for d=1,#a do
-local x=a[d]
-local y=b:byte((d-1)%#b+1)
-c[d]=string.char((bit32 and bit32.bxor(x,y)) or (bit and bit.bxor(x,y)) or (x~y))
+c[d]=string.char(bxor(a[d],b:byte((d-1)%#b+1)))
 end
 local e=table.concat(c)
 local f=loadstring or load
@@ -68,16 +68,15 @@ export function buildHardenedLoader(source: string, id: string): string {
   const k1 = key1.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
   const k2 = key2.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 
-  return `--[[ EMORCE HUB · HARDENED · ${id} ]]
+  return `--[[ EMORCE HUB HARDENED · ${id} ]]
+${PURE_BXOR}
 local A=${table}
 local K1="${k1}"
 local K2="${k2}"
 local function X(t,k)
 local o={}
 for i=1,#t do
-local b=t[i]
-local c=k:byte((i-1)%#k+1)
-o[i]=string.char((bit32 and bit32.bxor(b,c)) or (bit and bit.bxor(b,c)) or (b~c))
+o[i]=string.char(bxor(t[i],k:byte((i-1)%#k+1)))
 end
 return table.concat(o)
 end
