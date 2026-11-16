@@ -25,9 +25,16 @@ function isBrowser(req: NextRequest): boolean {
   const ua = (req.headers.get("user-agent") || "").toLowerCase();
   const accept = (req.headers.get("accept") || "").toLowerCase();
   const dest = (req.headers.get("sec-fetch-dest") || "").toLowerCase();
+  const mode = (req.headers.get("sec-fetch-mode") || "").toLowerCase();
   if (dest === "document" || dest === "iframe") return true;
-  if (ua.includes("mozilla") && accept.includes("text/html")) return true;
-  if (ua.includes("chrome") || ua.includes("safari") || ua.includes("firefox"))
+  if (mode === "navigate") return true;
+  if (accept.includes("text/html")) return true;
+  if (
+    ua.includes("mozilla") ||
+    ua.includes("chrome") ||
+    ua.includes("safari") ||
+    ua.includes("firefox")
+  )
     return true;
   return false;
 }
@@ -66,6 +73,7 @@ export async function GET(
     "X-Content-Type-Options": "nosniff",
   };
 
+  // Browser tab → password view UI (does not kill Roblox loadstrings)
   if (isBrowser(req) && !isRoblox(req)) {
     const t = token || makeToken(key);
     const url = new URL(`https://${host}/view/${encodeURIComponent(key)}`);
