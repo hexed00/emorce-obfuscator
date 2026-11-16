@@ -6,8 +6,8 @@ export const metadata: Metadata = {
   title: "EmorceHub · Script Protection",
   description: "EmorceHub obfuscator & key system",
   icons: {
-    icon: "/icon.jpg",
-    apple: "/icon.jpg",
+    icon: "https://i.pinimg.com/736x/b6/5c/9f/b65c9ffe02a7ffad3e5b3685a3daa08e.jpg",
+    apple: "https://i.pinimg.com/736x/b6/5c/9f/b65c9ffe02a7ffad3e5b3685a3daa08e.jpg",
   },
 };
 

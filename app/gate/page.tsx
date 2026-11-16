@@ -23,7 +23,8 @@ export default function GatePage() {
     <div
       className="min-h-screen flex items-center justify-center bg-[#050508] relative overflow-hidden"
       style={{
-        backgroundImage: "url(/gate.jpg)",
+        backgroundImage:
+          "url(https://i.pinimg.com/736x/18/19/e2/1819e267c285b3349531a7c1e6161f42.jpg)",
         backgroundSize: "cover",
         backgroundPosition: "center",
       }}
@@ -36,7 +37,7 @@ export default function GatePage() {
       >
         <div className="text-center space-y-1">
           <img
-            src="/icon.jpg"
+            src="https://i.pinimg.com/736x/b6/5c/9f/b65c9ffe02a7ffad3e5b3685a3daa08e.jpg"
             alt=""
             className="w-14 h-14 rounded-full mx-auto object-cover border border-[#c41e3a]/50"
           />
