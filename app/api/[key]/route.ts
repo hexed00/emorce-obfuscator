@@ -11,19 +11,23 @@ export const dynamic = "force-dynamic";
 
 const DENY = `-- EmorceHub\nerror("EmorceHub: need key")`;
 
-function isSuspicious(req: NextRequest): boolean {
+function isRoblox(req: NextRequest): boolean {
   const ua = (req.headers.get("user-agent") || "").toLowerCase();
-  const ref = (req.headers.get("referer") || "").toLowerCase();
+  if (ua.includes("roblox")) return true;
+  if (ua.includes("wininet")) return true;
+  if (ua.includes("synapse") || ua.includes("script-ware") || ua.includes("electron"))
+    return true;
+  if (!ua || ua === "http") return true;
+  return false;
+}
+
+function isBrowser(req: NextRequest): boolean {
+  const ua = (req.headers.get("user-agent") || "").toLowerCase();
   const accept = (req.headers.get("accept") || "").toLowerCase();
   const dest = (req.headers.get("sec-fetch-dest") || "").toLowerCase();
-
-  if (ua.includes("discord")) return true;
-  if (ref.includes("discord")) return true;
-  if (ua.includes("mozilla") && accept.includes("text/html")) return true;
   if (dest === "document" || dest === "iframe") return true;
-  if (ua.includes("python") || ua.includes("axios") || ua.includes("node"))
-    return true;
-  if (ua.includes("leakd") || ua.includes("curl") || ua.includes("wget"))
+  if (ua.includes("mozilla") && accept.includes("text/html")) return true;
+  if (ua.includes("chrome") || ua.includes("safari") || ua.includes("firefox"))
     return true;
   return false;
 }
@@ -53,12 +57,21 @@ export async function GET(
 ) {
   const key = params.key;
   const token = req.nextUrl.searchParams.get("t");
+  const host = req.headers.get("host") || "emorce-obfuscator.vercel.app";
+
   const headers = {
     "Content-Type": "text/plain; charset=utf-8",
     "Cache-Control": "no-store, no-cache, must-revalidate",
     "Access-Control-Allow-Origin": "*",
     "X-Content-Type-Options": "nosniff",
   };
+
+  if (isBrowser(req) && !isRoblox(req)) {
+    const t = token || makeToken(key);
+    const url = new URL(`https://${host}/view/${encodeURIComponent(key)}`);
+    url.searchParams.set("t", t);
+    return NextResponse.redirect(url.toString(), 302);
+  }
 
   const pw =
     req.headers.get("x-emorce-key") ||
@@ -80,21 +93,14 @@ export async function GET(
     return new NextResponse(DENY, { status: 401, headers });
   }
 
-  if (isSuspicious(req) && !allowPw) {
-    return new NextResponse(DENY, { status: 401, headers });
-  }
-
   if (allowPw) {
     let body: string | null = null;
     if (record) body = await recoverLoader(record);
     if (!body) body = await fetchLoaderByPasteId(key);
-    if (!body) {
-      return new NextResponse(DENY, { status: 404, headers });
-    }
+    if (!body) return new NextResponse(DENY, { status: 404, headers });
     return new NextResponse(body, { status: 200, headers });
   }
 
-  const host = req.headers.get("host") || "emorce-obfuscator.vercel.app";
   const bootstrap = buildBootstrap(host, key, token || makeToken(key));
   return new NextResponse(bootstrap, { status: 200, headers });
 }

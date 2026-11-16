@@ -5,6 +5,10 @@ import AppShell from "@/components/AppShell";
 export const metadata: Metadata = {
   title: "EmorceHub · Script Protection",
   description: "EmorceHub obfuscator & key system",
+  icons: {
+    icon: "/icon.jpg",
+    apple: "/icon.jpg",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
