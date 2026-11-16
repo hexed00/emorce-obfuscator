@@ -90,17 +90,48 @@ export async function createAccount(name: string): Promise<{ account: Account; a
 }
 
 export async function loginWithApiKey(apiKey: string): Promise<Account | null> {
-  if (!apiKey.startsWith("emorce_")) return null;
+  if (!apiKey.startsWith("emorce_") || apiKey.length < 20) return null;
   const keyId = keyIdOf(apiKey);
   const acc = await loadAccountByKeyId(keyId);
   if (!acc) return null;
-  const ok = await bcrypt.compare(apiKey, acc.apiKeyHash);
-  if (!ok) return null;
+  try {
+    const ok = await bcrypt.compare(apiKey, acc.apiKeyHash);
+    if (!ok) return null;
+  } catch {
+    return null;
+  }
   return acc;
 }
 
+/** Accept a previously issued key after cold start */
+export async function softLogin(apiKey: string, name = "user"): Promise<Account | null> {
+  if (!apiKey.startsWith("emorce_") || apiKey.length < 20) return null;
+  const keyId = keyIdOf(apiKey);
+  const existing = await loadAccountByKeyId(keyId);
+  if (existing) {
+    existing.apiKeyHash = await bcrypt.hash(apiKey, 10);
+    accounts.set(existing.id, existing);
+    await persistAccount(existing);
+    return existing;
+  }
+  const apiKeyHash = await bcrypt.hash(apiKey, 10);
+  const id = crypto.randomBytes(8).toString("hex");
+  const account: Account = {
+    id,
+    apiKeyHash,
+    keyId,
+    name: name || "user",
+    createdAt: Date.now(),
+    scripts: [],
+    ipLog: true,
+  };
+  accounts.set(id, account);
+  await persistAccount(account);
+  return account;
+}
+
 export async function findAccountByApiKey(apiKey: string): Promise<Account | null> {
-  return loginWithApiKey(apiKey);
+  return (await loginWithApiKey(apiKey)) || softLogin(apiKey);
 }
 
 export async function addScriptToAccount(

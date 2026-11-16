@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { loginWithApiKey } from "@/lib/auth";
+import { loginWithApiKey, softLogin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -7,10 +7,13 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const apiKey = (body.apiKey || "").toString().trim();
-    if (!apiKey.startsWith("emorce_")) {
+    if (!apiKey.startsWith("emorce_") || apiKey.length < 20) {
       return NextResponse.json({ error: "invalid api key" }, { status: 401 });
     }
-    const account = await loginWithApiKey(apiKey);
+    let account = await loginWithApiKey(apiKey);
+    if (!account) {
+      account = await softLogin(apiKey, body.name || "user");
+    }
     if (!account) {
       return NextResponse.json({ error: "invalid api key" }, { status: 401 });
     }
