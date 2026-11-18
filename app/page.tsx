@@ -7,7 +7,7 @@ export default function Home() {
   const [password, setPassword] = useState("");
   const [customPath, setCustomPath] = useState("");
   const [strength, setStrength] = useState<
-    "light" | "encoded" | "hardened" | "honey" | "volt" | "hexedvm"
+    "light" | "encoded" | "hardened" | "honey" | "volt" | "hexedvm" | "irvm"
   >("encoded");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -114,7 +114,7 @@ export default function Home() {
             </div>
           </div>
           <div className="rounded-xl border border-[#1a1a24] bg-[#0c0c12] p-4 text-center">
-            <div className="text-2xl font-bold text-[#00e5ff]">6</div>
+            <div className="text-2xl font-bold text-[#00e5ff]">7</div>
             <div className="text-[10px] text-[#6b6b80] uppercase tracking-widest mt-1">
               Modes
             </div>
@@ -175,6 +175,7 @@ export default function Home() {
                     { id: "honey", label: "Honey", desc: "Anti-tamper probes" },
                     { id: "volt", label: "Volt", desc: "Env + rolling XOR" },
                     { id: "hexedvm", label: "HEXED VM", desc: "Custom bytecode VM" },
+                    { id: "irvm", label: "IRVM", desc: "IR cells + dual stream" },
                   ] as const
                 ).map((o) => (
                   <button
