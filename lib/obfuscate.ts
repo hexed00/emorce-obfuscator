@@ -1,6 +1,7 @@
 /**
  * EmorceHub protection stack
  * light | encoded | hardened | honey | volt | hexedvm
+ * All pure Luau-safe (no external deps). Source never clear in loader.
  */
 
 function toBase64(input: string): string {
@@ -31,6 +32,7 @@ return string.char(c)
 end))
 end`;
 
+/** HoneyLUA-style anti-tamper — Roblox-safe (no string.dump / debug presence kills) */
 const HONEY_ANTITAMPER = `
 local function __em_hny_fail()
   error("EmorceHub: The Bee Caught You Stealing It's Honey!", 0)
@@ -46,38 +48,21 @@ do
       if ok and ty(e) == "table" then env = e end
     end
   end
+  -- only fail on active debug HOOK (steppers), not on presence of debug/getinfo
   local dbg = rg(env, "debug")
-  if ty(dbg) ~= "table" then __em_hny_fail() end
-  local gi = rg(dbg, "getinfo") or rg(dbg, "info")
-  if ty(gi) ~= "function" then __em_hny_fail() end
-  local sd = rg(rg(env, "string") or {}, "dump")
-  if ty(sd) == "function" then
-    local hits = 0
-    for _, n in ipairs({"getinfo","gethook","sethook","getlocal","traceback","error","pcall","tostring","type","print","rawget","rawset"}) do
-      local f = rg(dbg, n) or rg(env, n)
-      if ty(f) == "function" then
-        local ok, d = pc(sd, f)
-        if ok and ty(d) == "string" and #d > 0 then hits = hits + 1 end
-      end
+  if ty(dbg) == "table" then
+    local gh = rg(dbg, "gethook")
+    if ty(gh) == "function" then
+      local ok, h = pc(gh)
+      if ok and h ~= nil and h ~= false then __em_hny_fail() end
     end
-    if hits >= 1 then __em_hny_fail() end
   end
-  local gh = rg(dbg, "gethook")
-  if ty(gh) == "function" then
-    local ok, h = pc(gh)
-    if ok and h ~= nil and h ~= false then __em_hny_fail() end
-  end
-  local clock = (ty(tick) == "function" and tick) or (os and os.clock) or nil
-  if clock then
-    local t0 = clock()
-    for i = 1, 200 do pc(function() return i end) end
-    local t1 = clock()
-    if t0 > 0 and (t1 - t0) > 0.12 then __em_hny_fail() end
-  end
-  local bad = {"__PID","__ENT","__PLAST","__PF","__PA","__PK","__SKIPP","__SPIN","__venv","__LASTRET"}
+  -- common exploit / deobf globals only
+  local bad = {"__PID","__ENT","__PLAST","__PF","__PA","__PK","__SKIPP","__SPIN","__venv","__LASTRET","__hny_genv_probe_9f3a"}
   for i = 1, #bad do
     if rg(env, bad[i]) ~= nil then __em_hny_fail() end
   end
+  -- getgenv write probe (if getgenv exists and is broken, fail)
   local ggenv = rg(env, "getgenv")
   if ty(ggenv) == "function" then
     local ok, t = pc(ggenv)
@@ -93,6 +78,7 @@ do
 end
 `;
 
+/** Voltfuscator-inspired outer environment + primitive checks */
 const VOLT_ANTITAMPER = `
 local function __em_vfail(code)
   error("EmorceHub/Volt: " .. tostring(code), 0)
@@ -284,9 +270,9 @@ for _,block in ipairs(_C) do
       end
       x=r
     end
-    local inv
+    local inv=nil
     for i=0,255 do if _P[i+1]==x then inv=i break end end
-    if not inv then error("EmorceHub: VM corrupt",0) end
+    if inv==nil then error("EmorceHub: VM corrupt",0) end
     out[#out+1]=string.char(inv)
   end
 end
