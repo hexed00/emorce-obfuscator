@@ -6,6 +6,9 @@ import {
   lightProtect,
   buildEncodedLoader,
   buildHardenedLoader,
+  buildHoneyLoader,
+  buildVoltLoader,
+  buildHexedVmLoader,
 } from "@/lib/obfuscate";
 import { makeToken } from "@/lib/token";
 import { addScriptToAccount } from "@/lib/auth";
@@ -18,10 +21,9 @@ export async function POST(req: NextRequest) {
     const source: string = (body.source || "").trim();
     const password: string = (body.password || "").trim();
     let customPath: string | null = (body.customPath || "").trim() || null;
-    const strength: "light" | "encoded" | "hardened" =
-      body.strength === "light" || body.strength === "hardened"
-        ? body.strength
-        : "encoded";
+    const allowed = ["light","encoded","hardened","honey","volt","hexedvm"] as const;
+    type Str = typeof allowed[number];
+    const strength: Str = allowed.includes(body.strength) ? body.strength : "encoded";
 
     if (!source) {
       return NextResponse.json({ error: "Script source required" }, { status: 400 });
@@ -57,6 +59,12 @@ export async function POST(req: NextRequest) {
       loader = lightProtect(source, id);
     } else if (strength === "hardened") {
       loader = buildHardenedLoader(source, id);
+    } else if (strength === "honey") {
+      loader = buildHoneyLoader(source, id);
+    } else if (strength === "volt") {
+      loader = buildVoltLoader(source, id);
+    } else if (strength === "hexedvm") {
+      loader = buildHexedVmLoader(source, id);
     } else {
       loader = buildEncodedLoader(source, id);
     }
