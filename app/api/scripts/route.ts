@@ -10,6 +10,7 @@ import {
   buildVoltLoader,
   buildHexedVmLoader,
   buildIrVmLoader,
+  wrapWeAreDevs,
 } from "@/lib/obfuscate";
 import { makeToken } from "@/lib/token";
 import { addScriptToAccount } from "@/lib/auth";
@@ -109,7 +110,8 @@ export async function POST(req: NextRequest) {
     const token = makeToken(publicKey);
     const apiUrl = `${protocol}://${host}/api/${publicKey}?t=${token}`;
     const loadstring = `loadstring(game:HttpGet("${apiUrl}"))()`;
-    const offlineLoadstring = `loadstring([==[${loader}]==])()`;
+    // Offline: WeAreDevs-style outer shell, our protection inside
+    const offlineLoadstring = wrapWeAreDevs(loader, id);
 
     return NextResponse.json({
       id,
