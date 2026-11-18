@@ -6,7 +6,7 @@ export type ScriptRecord = {
   passwordHash: string;
   source: string;
   loader: string;
-  strength: "light" | "encoded" | "hardened";
+  strength: "light" | "encoded" | "hardened" | "honey" | "volt" | "hexedvm";
   pasteId: string | null;
   metaPasteId: string | null;
   createdAt: number;
@@ -24,12 +24,7 @@ if (!globalStore.__emorceScripts) {
 export const scripts = globalStore.__emorceScripts;
 
 export function getByIdOrPath(key: string): ScriptRecord | undefined {
-  if (scripts.has(key)) return scripts.get(key);
-  const values = Array.from(scripts.values());
-  for (let i = 0; i < values.length; i++) {
-    if (values[i].customPath === key) return values[i];
-  }
-  return undefined;
+  return scripts.get(key);
 }
 
 export function saveRecord(record: ScriptRecord) {
@@ -45,14 +40,10 @@ export function deleteRecord(record: ScriptRecord) {
 }
 
 export async function persistToPastefy(record: ScriptRecord): Promise<ScriptRecord> {
-  const loaderPaste = await createPaste(
-    `emorce-loader-${record.id}`,
-    record.loader
-  );
+  const loaderPaste = await createPaste(`emorce-loader-${record.id}`, record.loader);
   if (loaderPaste) {
     record.pasteId = loaderPaste.id;
   }
-
   const meta = {
     id: record.id,
     customPath: record.customPath,
@@ -62,14 +53,10 @@ export async function persistToPastefy(record: ScriptRecord): Promise<ScriptReco
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
   };
-  const metaPaste = await createPaste(
-    `emorce-meta-${record.id}`,
-    JSON.stringify(meta)
-  );
+  const metaPaste = await createPaste(`emorce-meta-${record.id}`, JSON.stringify(meta));
   if (metaPaste) {
     record.metaPasteId = metaPaste.id;
   }
-
   saveRecord(record);
   return record;
 }
