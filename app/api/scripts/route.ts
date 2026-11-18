@@ -103,41 +103,26 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const token = makeToken(record.id);
+    const publicKey = record.pasteId || customPath || id;
     const host = req.headers.get("host") || "emorce-obfuscator.vercel.app";
-    const proto = req.headers.get("x-forwarded-proto") || "https";
-    const base = `${proto}://${host}`;
+    const protocol = host.includes("localhost") ? "http" : "https";
+    const token = makeToken(publicKey);
+    const apiUrl = `${protocol}://${host}/api/${publicKey}?t=${token}`;
+    const loadstring = `loadstring(game:HttpGet("${apiUrl}"))()`;
+    const offlineLoadstring = `loadstring([==[${loader}]==])()`;
 
     return NextResponse.json({
-      ok: true,
-      id: record.id,
-      key: record.customPath || record.id,
-      strength: record.strength,
-      chars: source.length,
-      loadstring: `loadstring(game:HttpGet("${base}/api/${record.customPath || record.id}"))()`,
-      offline: record.loader,
-      manage: `${base}/view/${record.id}?t=${token}`,
+      id,
+      customPath,
+      key: publicKey,
+      apiUrl,
+      loadstring,
+      offlineLoadstring,
       pasteId: record.pasteId,
+      chars: source.length,
+      strength,
     });
   } catch (e: any) {
-    console.error(e);
-    return NextResponse.json({ error: e?.message || "server error" }, { status: 500 });
-  }
-}
-
-export async function GET(req: NextRequest) {
-  try {
-    const apiKey =
-      req.headers.get("x-emorce-key") ||
-      new URL(req.url).searchParams.get("key") ||
-      "";
-    if (!apiKey.startsWith("emorce_")) {
-      return NextResponse.json({ error: "API key required" }, { status: 401 });
-    }
-    const { listScriptsForAccount } = await import("@/lib/auth");
-    const scripts = await listScriptsForAccount(apiKey);
-    return NextResponse.json({ scripts });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message || "error" }, { status: 500 });
+    return NextResponse.json({ error: e.message || "Server error" }, { status: 500 });
   }
 }
