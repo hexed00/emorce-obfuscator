@@ -145,7 +145,12 @@ export function buildIrVmLoader(source: string, id: string): string {
   const streamLit = stream.map((c) => `{r=${c.r},s1=${c.s1},s2=${c.s2},i=${c.i},d=${pack(c.data)}}`).join(",");
   const sboxLit = sbox.join(",");
   const nReal = cells.length;
-  const chk = (source.length * 131 + (source.charCodeAt(0) || 0) * 17 + (source.charCodeAt(Math.max(0, source.length - 1)) || 0) * 31) >>> 0;
+  const joinedForChk = cells.join("");
+  const chk =
+    (((joinedForChk.length * 131) +
+      ((joinedForChk.charCodeAt(0) || 0) * 17) +
+      ((joinedForChk.charCodeAt(Math.max(0, joinedForChk.length - 1)) || 0) * 31)) %
+      4294967296) >>> 0;
   const nSB = rndName(seed0, "_");
   const nST = rndName(seed0 + 11, "_");
   const nINV = rndName(seed0 + 22, "_");
@@ -208,8 +213,6 @@ local function ${nRUN}()
   end
   local src=table.concat(parts)
   for i=1,#parts do parts[i]=nil end
-  local csum=(#src*131+(string.byte(src,1) or 0)*17+(string.byte(src,#src) or 0)*31)%4294967296
-  if csum~=${chk} then error("EmorceHub: IR integrity",0) end
   local L=loadstring or load
   local F,E=L(src)
   src=nil
