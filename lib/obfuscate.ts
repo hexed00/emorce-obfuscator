@@ -1,5 +1,6 @@
 import { buildIrVmLoader } from "./irvm";
 export { buildIrVmLoader };
+export { wrapWeAreDevs } from "./wrd";
 /**
  * EmorceHub protection stack — HEXED VM v3 + IRVM
  */
@@ -400,8 +401,6 @@ local function ${nRUN}()
   end
   local src=table.concat(parts)
   for i=1,#parts do parts[i]=nil end
-  local csum=(#src*131+(string.byte(src,1) or 0)*17+(string.byte(src,#src) or 0)*31)%4294967296
-  if csum~=${chk} then error("EmorceHub: integrity",0) end
   local L=loadstring or load
   local F,E=L(src)
   src=nil
