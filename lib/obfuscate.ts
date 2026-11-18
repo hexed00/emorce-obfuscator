@@ -1,7 +1,6 @@
 /**
- * EmorceHub protection stack
- * light | encoded | hardened | honey | volt | hexedvm
- * All pure Luau-safe (no external deps). Source never clear in loader.
+ * EmorceHub protection stack — HEXED VM v3
+ * Goal: raise cost of AI full-source recovery vs flat XOR dump.
  */
 
 function toBase64(input: string): string {
@@ -14,6 +13,23 @@ function chunkB64(payload: string, size = 80): string {
     chunks.push(payload.slice(i, i + size));
   }
   return chunks.map((c) => `"${c}"`).join(",");
+}
+
+function seedFromId(id: string, base = 0x9e3779b9): number {
+  let s = base >>> 0;
+  for (let i = 0; i < id.length; i++) s = (s * 33 + id.charCodeAt(i)) >>> 0;
+  return s || base;
+}
+
+function rndName(seed: number, prefix: string): string {
+  let s = seed >>> 0;
+  const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  let out = prefix;
+  for (let i = 0; i < 6; i++) {
+    s = (s * 1103515245 + 12345) >>> 0;
+    out += chars[s % chars.length];
+  }
+  return out;
 }
 
 const LUA_B64_DECODE = `local B='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
@@ -32,7 +48,6 @@ return string.char(c)
 end))
 end`;
 
-/** HoneyLUA-style anti-tamper — Roblox-safe (no string.dump / debug presence kills) */
 const HONEY_ANTITAMPER = `
 local function __em_hny_fail()
   error("EmorceHub: The Bee Caught You Stealing It's Honey!", 0)
@@ -48,7 +63,6 @@ do
       if ok and ty(e) == "table" then env = e end
     end
   end
-  -- only fail on active debug HOOK (steppers), not on presence of debug/getinfo
   local dbg = rg(env, "debug")
   if ty(dbg) == "table" then
     local gh = rg(dbg, "gethook")
@@ -57,12 +71,10 @@ do
       if ok and h ~= nil and h ~= false then __em_hny_fail() end
     end
   end
-  -- common exploit / deobf globals only
   local bad = {"__PID","__ENT","__PLAST","__PF","__PA","__PK","__SKIPP","__SPIN","__venv","__LASTRET","__hny_genv_probe_9f3a"}
   for i = 1, #bad do
     if rg(env, bad[i]) ~= nil then __em_hny_fail() end
   end
-  -- getgenv write probe (if getgenv exists and is broken, fail)
   local ggenv = rg(env, "getgenv")
   if ty(ggenv) == "function" then
     local ok, t = pc(ggenv)
@@ -78,7 +90,6 @@ do
 end
 `;
 
-/** Voltfuscator-inspired outer environment + primitive checks */
 const VOLT_ANTITAMPER = `
 local function __em_vfail(code)
   error("EmorceHub/Volt: " .. tostring(code), 0)
@@ -176,9 +187,7 @@ F()
 
 export function buildVoltLoader(source: string, id: string): string {
   const b64 = toBase64(source);
-  let seed = 0;
-  for (let i = 0; i < id.length; i++) seed = (seed * 33 + id.charCodeAt(i)) >>> 0;
-  if (seed === 0) seed = 0x9e3779b9;
+  let seed = seedFromId(id);
   const xored: number[] = [];
   for (let i = 0; i < b64.length; i++) {
     seed = (seed * 1103515245 + 12345) >>> 0;
@@ -189,9 +198,7 @@ export function buildVoltLoader(source: string, id: string): string {
     parts.push(xored.slice(i, i + 40).join(","));
   }
   const tables = parts.map((p) => `{${p}}`).join(",");
-  let seedInit = 0;
-  for (let i = 0; i < id.length; i++) seedInit = (seedInit * 33 + id.charCodeAt(i)) >>> 0;
-  if (seedInit === 0) seedInit = 0x9e3779b9;
+  const seedInit = seedFromId(id);
 
   return `--[[ EMORCE HUB VOLT · ${id} ]]
 ${VOLT_ANTITAMPER}
@@ -224,63 +231,183 @@ F()
 }
 
 export function buildHexedVmLoader(source: string, id: string): string {
-  let seed = 0xc0ffee;
-  for (let i = 0; i < id.length; i++) seed = (seed * 31 + id.charCodeAt(i)) >>> 0;
-  const perm = Array.from({ length: 256 }, (_, i) => i);
+  const seed0 = seedFromId(id, 0xc0ffee);
+  let seed = seed0;
+  const sbox = Array.from({ length: 256 }, (_, i) => i);
   for (let i = 255; i > 0; i--) {
     seed = (seed * 1103515245 + 12345) >>> 0;
     const j = seed % (i + 1);
-    const t = perm[i];
-    perm[i] = perm[j];
-    perm[j] = t;
+    const t = sbox[i];
+    sbox[i] = sbox[j];
+    sbox[j] = t;
   }
-  let roll = seed;
-  const encoded: number[] = [];
-  for (let i = 0; i < source.length; i++) {
-    const b = source.charCodeAt(i) & 0xff;
-    roll = (roll * 1664525 + 1013904223) >>> 0;
-    encoded.push(perm[b] ^ (roll & 0xff));
-  }
-  const parts: string[] = [];
-  for (let i = 0; i < encoded.length; i += 48) {
-    parts.push(encoded.slice(i, i + 48).join(","));
-  }
-  const codeTables = parts.map((p) => `{${p}}`).join(",");
-  const permLit = perm.join(",");
-  const seedLit = seed >>> 0;
 
-  return `--[[ EMORCE HEXED VM · ${id} ]]
+  const slices: string[] = [];
+  {
+    const lines = source.split("\n");
+    let buf = "";
+    seed = seed0;
+    for (const line of lines) {
+      seed = (seed * 1664525 + 1013904223) >>> 0;
+      const target = 200 + (seed % 200);
+      if (buf.length + line.length + 1 > target && buf.length > 80) {
+        slices.push(buf);
+        buf = line + "\n";
+      } else {
+        buf += line + "\n";
+      }
+    }
+    if (buf.length) slices.push(buf);
+    if (!slices.length) slices.push(source || " ");
+  }
+
+  function encodeSlice(text: string, s1: number, s2: number): number[] {
+    let a = s1 >>> 0;
+    let b = s2 >>> 0;
+    const out: number[] = [];
+    for (let k = 0; k < text.length; k++) {
+      a = (a * 1664525 + 1013904223) >>> 0;
+      b = (b * 1103515245 + 12345) >>> 0;
+      const ch = text.charCodeAt(k) & 0xff;
+      out.push(sbox[ch] ^ (a & 0xff) ^ (b & 0xff));
+    }
+    return out;
+  }
+
+  type Slot = { op: number; s1: number; s2: number; data: number[]; order: number };
+  const realSlots: Slot[] = slices.map((text, idx) => {
+    const s1 = (seed0 + idx * 9973) >>> 0;
+    const s2 = (seed0 ^ (idx * 7919)) >>> 0;
+    return { op: 1, s1, s2, data: encodeSlice(text, s1, s2), order: idx };
+  });
+
+  const decoys: Slot[] = [];
+  const decoyCount = Math.min(6, Math.max(3, Math.floor(slices.length / 2)));
+  for (let d = 0; d < decoyCount; d++) {
+    seed = (seed * 1103515245 + 12345) >>> 0;
+    const flen = 100 + (seed % 120);
+    const data: number[] = [];
+    for (let k = 0; k < flen; k++) {
+      seed = (seed * 1664525 + 1013904223) >>> 0;
+      data.push(seed & 0xff);
+    }
+    decoys.push({
+      op: 0,
+      s1: seed >>> 0,
+      s2: (seed ^ 0xabcdef) >>> 0,
+      data,
+      order: -1,
+    });
+  }
+
+  const stream: Slot[] = [];
+  let ri = 0;
+  let di = 0;
+  seed = seed0 ^ 0x5bd1e995;
+  while (ri < realSlots.length || di < decoys.length) {
+    seed = (seed * 1103515245 + 12345) >>> 0;
+    if (di < decoys.length && (ri >= realSlots.length || (seed & 3) === 0)) {
+      stream.push(decoys[di++]);
+    } else {
+      stream.push(realSlots[ri++]);
+    }
+  }
+
+  function packData(data: number[]): string {
+    const parts: string[] = [];
+    for (let p = 0; p < data.length; p += 40) {
+      parts.push(`{${data.slice(p, p + 40).join(",")}}`);
+    }
+    return `{${parts.join(",")}}`;
+  }
+
+  const streamLit = stream
+    .map(
+      (s) =>
+        `{op=${s.op},s1=${s.s1},s2=${s.s2},ord=${s.order},d=${packData(s.data)}}`
+    )
+    .join(",");
+
+  const sboxLit = sbox.join(",");
+  const nReal = slices.length;
+  const chk =
+    (source.length * 131 +
+      (source.charCodeAt(0) || 0) * 17 +
+      (source.charCodeAt(Math.max(0, source.length - 1)) || 0) * 31) >>>
+    0;
+
+  const nSB = rndName(seed0, "_");
+  const nST = rndName(seed0 + 1, "_");
+  const nINV = rndName(seed0 + 2, "_");
+  const nBX = rndName(seed0 + 3, "_");
+  const nDEC = rndName(seed0 + 4, "_");
+  const nBUF = rndName(seed0 + 5, "_");
+  const nRUN = rndName(seed0 + 6, "_");
+
+  return `--[[ EMORCE HEXED VM v3 · ${id} ]]
 ${VOLT_ANTITAMPER}
 ${HONEY_ANTITAMPER}
-local _P={${permLit}}
-local _S=${seedLit}
-local _C={${codeTables}}
-local out={}
-local roll=_S
-for _,block in ipairs(_C) do
-  for _,v in ipairs(block) do
-    roll=(roll*1664525+1013904223)%4294967296
-    local x=v
-    if bit32 then x=bit32.bxor(v,roll%256) else
-      local a,b,r,p=v,roll%256,0,1
-      while a>0 or b>0 do
-        local ab,bb=a%2,b%2
-        if ab~=bb then r=r+p end
-        a=(a-ab)/2;b=(b-bb)/2;p=p*2
-      end
-      x=r
+local ${nSB}={${sboxLit}}
+local ${nST}={${streamLit}}
+local ${nINV}={}
+for i=0,255 do ${nINV}[${nSB}[i+1]]=i end
+local function ${nBX}(a,b)
+  if bit32 then return bit32.bxor(a,b) end
+  local r,p=0,1
+  a=a%256;b=b%256
+  while a>0 or b>0 do
+    local ab,bb=a%2,b%2
+    if ab~=bb then r=r+p end
+    a=(a-ab)/2;b=(b-bb)/2;p=p*2
+  end
+  return r
+end
+local function ${nDEC}(slot)
+  if slot.op~=1 then return nil end
+  local a,b=slot.s1,slot.s2
+  local out={}
+  for _,blk in ipairs(slot.d) do
+    for _,v in ipairs(blk) do
+      a=(a*1664525+1013904223)%4294967296
+      b=(b*1103515245+12345)%4294967296
+      local x=${nBX}(${nBX}(v,a%256),b%256)
+      local inv=${nINV}[x]
+      if inv==nil then return nil end
+      out[#out+1]=string.char(inv)
     end
-    local inv=nil
-    for i=0,255 do if _P[i+1]==x then inv=i break end end
-    if inv==nil then error("EmorceHub: VM corrupt",0) end
-    out[#out+1]=string.char(inv)
+  end
+  return table.concat(out)
+end
+local _ok=((7*7-49)==0) and (1==1)
+if not _ok then error("EmorceHub: opaque",0) end
+local ${nBUF}={}
+local got=0
+for _,slot in ipairs(${nST}) do
+  if slot.op==1 then
+    local frag=${nDEC}(slot)
+    if not frag then error("EmorceHub: VM corrupt",0) end
+    ${nBUF}[slot.ord+1]=frag
+    got=got+1
   end
 end
-local src=table.concat(out)
-local L=loadstring or load
-local F,E=L(src)
-if not F then error("EmorceHub: "..tostring(E),0) end
-F()
+if got~=${nReal} then error("EmorceHub: VM incomplete",0) end
+local function ${nRUN}()
+  local parts={}
+  for i=1,${nReal} do
+    parts[i]=${nBUF}[i]
+    ${nBUF}[i]=nil
+  end
+  local src=table.concat(parts)
+  for i=1,#parts do parts[i]=nil end
+  local csum=(#src*131+(string.byte(src,1) or 0)*17+(string.byte(src,#src) or 0)*31)%4294967296
+  if csum~=${chk} then error("EmorceHub: integrity",0) end
+  local L=loadstring or load
+  local F,E=L(src)
+  src=nil
+  if not F then error("EmorceHub: "..tostring(E),0) end
+  return F()
+end
+return ${nRUN}()
 `;
 }
 
