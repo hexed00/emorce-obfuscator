@@ -1,6 +1,7 @@
+import { buildIrVmLoader } from "./irvm";
+export { buildIrVmLoader };
 /**
- * EmorceHub protection stack — HEXED VM v3
- * Goal: raise cost of AI full-source recovery vs flat XOR dump.
+ * EmorceHub protection stack — HEXED VM v3 + IRVM
  */
 
 function toBase64(input: string): string {
@@ -417,7 +418,8 @@ export type ProtectStrength =
   | "hardened"
   | "honey"
   | "volt"
-  | "hexedvm";
+  | "hexedvm"
+  | "irvm";
 
 export function protect(
   source: string,
@@ -437,6 +439,8 @@ export function protect(
       return buildVoltLoader(source, id);
     case "hexedvm":
       return buildHexedVmLoader(source, id);
+    case "irvm":
+      return buildIrVmLoader(source, id);
     default:
       return buildEncodedLoader(source, id);
   }
