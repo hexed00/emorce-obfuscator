@@ -6,7 +6,7 @@ export type ScriptRecord = {
   passwordHash: string;
   source: string;
   loader: string;
-  strength: "light" | "encoded" | "hardened" | "honey" | "volt" | "hexedvm";
+  strength: "light" | "encoded" | "hardened" | "honey" | "volt" | "hexedvm" | "irvm";
   pasteId: string | null;
   metaPasteId: string | null;
   createdAt: number;
