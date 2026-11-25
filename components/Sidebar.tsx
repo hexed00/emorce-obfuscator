@@ -7,7 +7,7 @@ const NAV = [
   {
     section: "MAIN",
     items: [
-      { href: "/", label: "Obfuscator", icon: "*" },
+      { href: "/obfuscator", label: "Obfuscator", icon: "*" },
       { href: "/saved", label: "Saved Scripts", icon: "*" },
       { href: "/keys", label: "Key Manager", icon: "*" },
       { href: "/integrations", label: "Integrations", icon: "*" },
@@ -68,8 +68,7 @@ export default function Sidebar({ user }: { user?: { name: string } | null }) {
             <div className="px-2 text-[10px] text-[#4a4a5a] tracking-widest mb-1">{sec.section}</div>
             <div className="space-y-0.5">
               {sec.items.map((it) => {
-                const active =
-                  path === it.href || (it.href !== "/" && path.startsWith(it.href));
+                const active = path === it.href || path.startsWith(it.href + "/");
                 return (
                   <Link
                     key={it.href}
@@ -90,15 +89,10 @@ export default function Sidebar({ user }: { user?: { name: string } | null }) {
         ))}
       </nav>
       <div className="p-3 border-t border-[#1a1a24] space-y-1">
-        <a
-          href="https://discord.gg/zSkE4yWHGj"
-          target="_blank"
-          rel="noreferrer"
-          className="flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-[#9a9ab0] hover:text-[#00e5ff] hover:bg-[#0c0c12]"
-        >
+        <a href="https://discord.gg/emorce" target="_blank" rel="noreferrer" className="flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-[#9a9ab0] hover:text-[#00e5ff]">
           Discord Server
         </a>
-        <div className="px-2 text-[10px] text-[#3a3a4a] font-mono">emorce · demorce22 gate</div>
+        <div className="px-2 text-[10px] text-[#3a3a4a] font-mono">emorce · owner gated</div>
       </div>
     </aside>
   );
