@@ -1,16 +1,26 @@
 import { NextResponse } from "next/server";
-import { EMORCE_MUSIC_B64 } from "@/lib/music-b64";
 
-export const dynamic = "force-static";
+export const dynamic = "force-dynamic";
+
+// Hosted track mirror — always works without huge base64 modules on git
+const MUSIC_URL = "https://d.uguu.se/auYykEDyMCiw.mp3";
 
 export async function GET() {
-  const buf = Buffer.from(EMORCE_MUSIC_B64, "base64");
-  return new NextResponse(buf, {
-    status: 200,
-    headers: {
-      "Content-Type": "audio/mpeg",
-      "Cache-Control": "public, max-age=31536000, immutable",
-      "Content-Length": String(buf.length),
-    },
-  });
+  try {
+    const res = await fetch(MUSIC_URL, { cache: "force-cache" });
+    if (!res.ok) {
+      return new NextResponse("music unavailable", { status: 502 });
+    }
+    const buf = Buffer.from(await res.arrayBuffer());
+    return new NextResponse(buf, {
+      status: 200,
+      headers: {
+        "Content-Type": "audio/mpeg",
+        "Cache-Control": "public, max-age=86400",
+        "Content-Length": String(buf.length),
+      },
+    });
+  } catch {
+    return new NextResponse("music error", { status: 500 });
+  }
 }
