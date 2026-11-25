@@ -7,34 +7,34 @@ const NAV = [
   {
     section: "MAIN",
     items: [
-      { href: "/obfuscator", label: "Obfuscator", icon: "*" },
-      { href: "/saved", label: "Saved Scripts", icon: "*" },
-      { href: "/keys", label: "Key Manager", icon: "*" },
-      { href: "/integrations", label: "Integrations", icon: "*" },
+      { href: "/obfuscator", label: "Obfuscator", icon: "◈" },
+      { href: "/saved", label: "Saved Scripts", icon: "◈" },
+      { href: "/keys", label: "Key Manager", icon: "◈" },
+      { href: "/integrations", label: "Integrations", icon: "◈" },
     ],
   },
   {
     section: "TOOLS",
     items: [
-      { href: "/shared", label: "Shared", icon: "*" },
-      { href: "/collab", label: "Collab", icon: "*" },
-      { href: "/analytics", label: "Analytics", icon: "*" },
-      { href: "/key-status", label: "Key Status", icon: "*" },
+      { href: "/shared", label: "Shared", icon: "◈" },
+      { href: "/collab", label: "Collab", icon: "◈" },
+      { href: "/analytics", label: "Analytics", icon: "◈" },
+      { href: "/key-status", label: "Key Status", icon: "◈" },
     ],
   },
   {
     section: "ACCOUNT",
     items: [
-      { href: "/settings", label: "Settings", icon: "*" },
-      { href: "/login", label: "API Key Login", icon: "*" },
+      { href: "/settings", label: "Settings", icon: "◈" },
+      { href: "/login", label: "API Key Login", icon: "◈" },
     ],
   },
   {
     section: "LEGAL",
     items: [
-      { href: "/tos", label: "Terms of Service", icon: "*" },
-      { href: "/privacy", label: "Privacy Policy", icon: "*" },
-      { href: "/about", label: "Help", icon: "*" },
+      { href: "/tos", label: "Terms of Service", icon: "◈" },
+      { href: "/privacy", label: "Privacy Policy", icon: "◈" },
+      { href: "/about", label: "Help", icon: "◈" },
     ],
   },
 ];
@@ -42,12 +42,12 @@ const NAV = [
 export default function Sidebar({ user }: { user?: { name: string } | null }) {
   const path = usePathname();
   return (
-    <aside className="w-60 shrink-0 border-r border-[#1a1a24] bg-[#08080e] min-h-screen flex flex-col">
-      <div className="px-4 py-4 border-b border-[#1a1a24] flex items-center gap-2">
+    <aside className="w-60 shrink-0 border-r border-[#1a1a24] bg-[#08080e]/95 backdrop-blur-md min-h-screen flex flex-col shadow-[4px_0_24px_rgba(0,0,0,0.35)]">
+      <div className="px-4 py-4 border-b border-[#1a1a24] flex items-center gap-2.5">
         <img
           src="https://i.pinimg.com/736x/b6/5c/9f/b65c9ffe02a7ffad3e5b3685a3daa08e.jpg"
           alt=""
-          className="w-7 h-7 rounded-full object-cover border border-[#c41e3a]/40"
+          className="w-8 h-8 rounded-full object-cover border border-[#c41e3a]/50 shadow-[0_0_14px_rgba(196,30,58,0.35)]"
         />
         <div>
           <div className="text-[#00e5ff] font-bold tracking-tight leading-tight">EmorceHub</div>
@@ -68,18 +68,18 @@ export default function Sidebar({ user }: { user?: { name: string } | null }) {
             <div className="px-2 text-[10px] text-[#4a4a5a] tracking-widest mb-1">{sec.section}</div>
             <div className="space-y-0.5">
               {sec.items.map((it) => {
-                const active = path === it.href || path.startsWith(it.href + "/");
+                const active = path === it.href || (it.href !== "/" && path.startsWith(it.href));
                 return (
                   <Link
                     key={it.href}
                     href={it.href}
-                    className={`flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition ${
+                    className={`flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm transition-all duration-150 ${
                       active
-                        ? "bg-[#0e2a30] text-[#00e5ff] border-l-2 border-[#00e5ff]"
-                        : "text-[#9a9ab0] hover:bg-[#0c0c12] hover:text-white"
+                        ? "bg-[#0e2a30] text-[#00e5ff] border-l-2 border-[#00e5ff] shadow-[inset_0_0_20px_rgba(0,229,255,0.06)]"
+                        : "text-[#9a9ab0] hover:bg-[#0c0c12] hover:text-white hover:translate-x-0.5"
                     }`}
                   >
-                    <span className="text-[10px] opacity-60 w-4">{it.icon}</span>
+                    <span className={`text-[10px] w-4 ${active ? "opacity-100 text-[#00e5ff]" : "opacity-50"}`}>{it.icon}</span>
                     {it.label}
                   </Link>
                 );
@@ -88,11 +88,8 @@ export default function Sidebar({ user }: { user?: { name: string } | null }) {
           </div>
         ))}
       </nav>
-      <div className="p-3 border-t border-[#1a1a24] space-y-1">
-        <a href="https://discord.gg/emorce" target="_blank" rel="noreferrer" className="flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-[#9a9ab0] hover:text-[#00e5ff]">
-          Discord Server
-        </a>
-        <div className="px-2 text-[10px] text-[#3a3a4a] font-mono">emorce · owner gated</div>
+      <div className="px-4 py-3 border-t border-[#1a1a24] text-[10px] text-[#3a3a4a] font-mono">
+        emorce · demorce22 gate
       </div>
     </aside>
   );
