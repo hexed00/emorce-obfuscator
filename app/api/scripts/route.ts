@@ -18,75 +18,61 @@ export const dynamic = "force-dynamic";
 
 function buildOfflineBootstrap(host: string, key: string, token: string): string {
   const execUrl = `https://${host}/api/${key}/exec?t=${token}`;
-  return `-- language: Luau | Emorce Hub · Bootstrap · IRVM payload
--- emorce obf: exact approved bootstrap, one native scheduler handoff.
+  return `-- Emorce Hub · Bootstrap · IRVM payload
+-- emorce native-stage handoff
 
-if type(_G.__EmorceBootstrapStop) == "function" then pcall(_G.__EmorceBootstrapStop) end
+local G = (type(getgenv) == "function" and getgenv()) or _G
+if type(G.__EmorceBootstrapStop) == "function" then pcall(G.__EmorceBootstrapStop) end
 
-local 環境 = (type(getgenv) == "function" and getgenv()) or _G
-local 診断 = { version = 1, profile = "emorce-native-compile-boundary-v1", stage = "entry", hub = "Emorce", startedAt = os.clock() }
-local 段階数 = 0
-local function _EmNativeStage(stage)
-	診断.stage = stage
-	診断.updatedAt = os.clock()
-	環境.EmorceBootstrapDiagnostic = 診断
-	if 段階数 < 16 and task and type(task.wait) == "function" then
-		段階数 = 段階数 + 1
-		task.wait()
-	end
-end
-_EmNativeStage("common-cold-start")
+local url = G.EmorcePayloadUrl or "${execUrl}"
 
-local payloadUrl = 環境.EmorcePayloadUrl or "${execUrl}"
-
-local function 取得(url)
+local function httpget(u)
 	local body
-	local ok, err = pcall(function()
+	local ok = pcall(function()
 		if type(syn) == "table" and type(syn.request) == "function" then
-			local r = syn.request({ Url = url, Method = "GET" })
+			local r = syn.request({Url = u, Method = "GET"})
 			body = r and r.Body
 		elseif type(http_request) == "function" then
-			local r = http_request({ Url = url, Method = "GET" })
+			local r = http_request({Url = u, Method = "GET"})
 			body = r and r.Body
 		elseif type(request) == "function" then
-			local r = request({ Url = url, Method = "GET" })
+			local r = request({Url = u, Method = "GET"})
 			body = r and r.Body
-		elseif type(game.HttpGet) == "function" then
-			body = game:HttpGet(url)
+		elseif game and type(game.HttpGet) == "function" then
+			body = game:HttpGet(u)
 		else
 			error("no HTTP")
 		end
 	end)
-	if not ok then return nil, tostring(err) end
-	if type(body) ~= "string" or #body < 8 then return nil, "empty" end
+	if not ok or type(body) ~= "string" or #body < 10 then return nil end
 	return body
 end
 
-_EmNativeStage("resolve-start")
-local source, fetchErr = 取得(payloadUrl)
-if not source then
-	error("EmorceHub: payload resolve failed · " .. tostring(fetchErr), 0)
+local body = httpget(url)
+if not body then
+	error("EmorceHub: payload fail", 0)
 end
-if source:find("need key", 1, true) then
+if string.find(body, "need key", 1, true) then
 	error("EmorceHub: need key", 0)
 end
-診断.bytes = #source
-_EmNativeStage("compile-game")
+
 local L = loadstring or load
-local fn, err = L(source, "Emorce Hub module")
-if type(fn) ~= "function" then
-	error("EmorceHub: " .. tostring(err), 0)
+if type(L) ~= "function" then
+	error("EmorceHub: no loadstring", 0)
 end
-_EmNativeStage("runtime-invoke")
-local function 起動()
-	local ok, result = pcall(fn)
-	if not ok then error("EmorceHub: " .. tostring(result), 0) end
-	_EmNativeStage("runtime-ready")
+local fn, cerr = L(body)
+if type(fn) ~= "function" then
+	error("EmorceHub: compile · " .. tostring(cerr), 0)
+end
+
+local function run()
+	local ok, res = pcall(fn)
+	if not ok then error("EmorceHub: " .. tostring(res), 0) end
 end
 if task and type(task.defer) == "function" then
-	task.defer(起動)
+	task.defer(run)
 else
-	起動()
+	run()
 end
 `;
 }
