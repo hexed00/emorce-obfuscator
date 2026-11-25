@@ -5,8 +5,8 @@ import path from "path";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-// Full ~90s track (~182kbps)
-const FULL_MUSIC_URL = "https://h.uguu.se/WoYyoaScPzSg.mp3";
+// Full ~95s track @ 192kbps (luvkrime / cocaine cut)
+const FULL_MUSIC_URL = "https://n.uguu.se/PNWsZtOciVSK.mp3";
 
 export async function GET() {
   try {
@@ -14,12 +14,12 @@ export async function GET() {
       try {
         const local = path.join(process.cwd(), "public", name);
         const buf = await readFile(local);
-        if (buf.length > 500_000) {
+        if (buf.length > 1_000_000) {
           return new NextResponse(buf, {
             status: 200,
             headers: {
               "Content-Type": "audio/mpeg",
-              "Cache-Control": "public, max-age=86400, immutable",
+              "Cache-Control": "public, max-age=3600",
               "Content-Length": String(buf.length),
               "Accept-Ranges": "bytes",
             },
@@ -30,7 +30,7 @@ export async function GET() {
       }
     }
 
-    const res = await fetch(FULL_MUSIC_URL, { cache: "force-cache" });
+    const res = await fetch(FULL_MUSIC_URL, { cache: "no-store" });
     if (!res.ok) {
       return new NextResponse("music unavailable", { status: 502 });
     }
@@ -39,7 +39,7 @@ export async function GET() {
       status: 200,
       headers: {
         "Content-Type": "audio/mpeg",
-        "Cache-Control": "public, max-age=86400",
+        "Cache-Control": "public, max-age=3600",
         "Content-Length": String(buf.length),
         "Accept-Ranges": "bytes",
       },
