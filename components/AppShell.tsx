@@ -60,7 +60,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   if (!gated) {
     return (
       <div className="min-h-screen bg-[#050508] flex items-center justify-center text-[#6b6b80] text-sm">
-        locked...
+        Redirecting...
       </div>
     );
   }
@@ -68,13 +68,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   if (!user) {
     return (
       <div className="min-h-screen bg-[#050508] flex items-center justify-center text-[#6b6b80] text-sm">
-        redirecting to login...
+        Redirecting...
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-[#050508] text-[#e8e8f0]">
+    <div className="min-h-screen bg-[#050508] text-[#e8e8f0] flex">
       <Sidebar user={user} />
       <div className="flex-1 min-w-0 overflow-auto">{children}</div>
     </div>
