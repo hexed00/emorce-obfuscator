@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Sidebar from "./Sidebar";
 
-const PUBLIC = ["/gate", "/view", "/tos", "/privacy", "/about"];
-
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<{ name: string } | null>(null);
   const [ready, setReady] = useState(false);
@@ -30,22 +28,25 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!ready) return;
-    const isView = path.startsWith("/view");
-    const isPublic = PUBLIC.some((p) => path === p || path.startsWith(p + "/"));
-    if (!gated && !isView && path !== "/gate") {
-      router.replace("/gate");
+    if (path === "/") return;
+    if (path.startsWith("/view") || path === "/tos" || path === "/privacy" || path === "/about") return;
+    if (path === "/login" || path === "/gate") return;
+
+    if (!gated) {
+      router.replace("/");
       return;
     }
-    if (gated && !user && !isPublic && path !== "/login") {
+    if (!user) {
       router.replace("/login");
     }
   }, [ready, gated, user, path, router]);
 
-  if (path === "/gate" || path.startsWith("/view")) {
-    return <div className="min-h-screen bg-[#050508] text-[#e8e8f0]">{children}</div>;
-  }
-
-  if (path === "/login") {
+  if (
+    path === "/" ||
+    path === "/gate" ||
+    path === "/login" ||
+    path.startsWith("/view")
+  ) {
     return <div className="min-h-screen bg-[#050508] text-[#e8e8f0]">{children}</div>;
   }
 
@@ -57,15 +58,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!gated) {
-    return (
-      <div className="min-h-screen bg-[#050508] flex items-center justify-center text-[#6b6b80] text-sm">
-        Redirecting...
-      </div>
-    );
-  }
-
-  if (!user) {
+  if (!gated || !user) {
     return (
       <div className="min-h-screen bg-[#050508] flex items-center justify-center text-[#6b6b80] text-sm">
         Redirecting...
