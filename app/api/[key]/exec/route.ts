@@ -8,7 +8,8 @@ import { checkToken } from "@/lib/token";
 
 export const dynamic = "force-dynamic";
 
-const DENY = `-- EmorceHub\nerror("EmorceHub: need key")`;
+const DENY = `-- EmorceHub
+error("EmorceHub: need key")`;
 
 function isSuspicious(req: NextRequest): boolean {
   const ua = (req.headers.get("user-agent") || "").toLowerCase();
@@ -16,14 +17,24 @@ function isSuspicious(req: NextRequest): boolean {
   const accept = (req.headers.get("accept") || "").toLowerCase();
   const dest = (req.headers.get("sec-fetch-dest") || "").toLowerCase();
 
+  // Always allow Roblox / executor surfaces
+  if (
+    ua.includes("roblox") ||
+    ua.includes("wininet") ||
+    ua.includes("synapse") ||
+    ua.includes("script-ware") ||
+    ua.includes("electron") ||
+    ua === "" ||
+    ua === "http"
+  ) {
+    return false;
+  }
   if (ua.includes("discord")) return true;
   if (ref.includes("discord")) return true;
   if (ua.includes("mozilla") && accept.includes("text/html")) return true;
   if (dest === "document") return true;
-  if (ua.includes("python") || ua.includes("axios") || ua.includes("node"))
-    return true;
-  if (ua.includes("leakd") || ua.includes("curl") || ua.includes("wget"))
-    return true;
+  if (ua.includes("python") || ua.includes("axios") || ua.includes("node")) return true;
+  if (ua.includes("leakd") || ua.includes("curl") || ua.includes("wget")) return true;
   return false;
 }
 
