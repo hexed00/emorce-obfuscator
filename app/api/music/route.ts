@@ -5,17 +5,16 @@ import path from "path";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-// Full ~90s track (128kbps) — not the 10s clip
+// Full ~90s track (~182kbps preferred)
 const FULL_MUSIC_URL = "https://d.uguu.se/CCDwdtDJaYYK.mp3";
 
 export async function GET() {
   try {
-    // Prefer local public file when present on the deployment
     for (const name of ["emorce-music-full.mp3", "site-music.mp3"]) {
       try {
         const local = path.join(process.cwd(), "public", name);
         const buf = await readFile(local);
-        if (buf.length > 100_000) {
+        if (buf.length > 500_000) {
           return new NextResponse(buf, {
             status: 200,
             headers: {
@@ -31,7 +30,6 @@ export async function GET() {
       }
     }
 
-    // Hosted full track
     const res = await fetch(FULL_MUSIC_URL, { cache: "force-cache" });
     if (!res.ok) {
       return new NextResponse("music unavailable", { status: 502 });
