@@ -5,8 +5,8 @@ import path from "path";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-// Full ~90s track (~182kbps preferred)
-const FULL_MUSIC_URL = "https://d.uguu.se/CCDwdtDJaYYK.mp3";
+// Full ~90s track (~182kbps)
+const FULL_MUSIC_URL = "https://h.uguu.se/WoYyoaScPzSg.mp3";
 
 export async function GET() {
   try {
